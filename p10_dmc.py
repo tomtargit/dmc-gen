@@ -1,9 +1,11 @@
 # pip install pylibdmtx
 # pip install pylibdmtx[scripts]
+# pip install fpdf2
 
 # load
 from pylibdmtx.pylibdmtx import encode, decode
 from PIL import Image
+from fpdf import FPDF
 
 
 class DmcConfig:
@@ -51,7 +53,14 @@ class DmcConfig:
             if type(item) == DmcConfig.DmcConfigConstant:
                 print('\t\t', item.type, item.phrase)
             if type(item) == DmcConfig.DmcConfigCounter:
-                print('\t\t', item.type, item.start, item.step, item.chars_num)
+                print('\t\t', item.type, 'start', item.start, 'by', item.step, 'characters', item.chars_num)
+
+        # def main():
+        #     pdf = FPDF()
+        #     pdf.add_page()
+        #     pdf.set_font('helvetica', size=12)
+        #     pdf.cell(txt="hello world")
+        #     pdf.output("hello_world.pdf")
 
     class DmcConfigCounter:
         def __init__(self, start, step, chars_num):
@@ -80,54 +89,33 @@ class DmcSheet:  # sheet can contain many DmcConfigs
         for item in self.dmc_config:
             item.display_config()
 
+    def generate_pdf(self):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font('helvetica', size=12)
+        for dmc_idx, dmc_config in enumerate(self.dmc_config):
+            for dmc_idx2, dmcs in enumerate(dmc_config.get_dmcs()):
+                tmp_img = generate(dmcs)
+                # tmp_img.show()
+                # tmp_img.save('dmtx.png'')
+                x_start = 10
+                y_start = 10
+                x_increment = 30
+                y_increment = 30
+                x_pos = x_start + x_increment*dmc_idx
+                y_pos = y_start + y_increment*dmc_idx2
+                pdf.image(tmp_img, x_pos, y_pos, type='PNG')
+        pdf.output("hello_world.pdf")
 
 def generate(arg_list):
 
     encoded = encode(arg_list[0].encode('utf8'))
     img = Image.frombytes('RGB', (encoded.width, encoded.height), encoded.pixels)
-    img.show()
+    return(img)
+    # img.show()
     # img.save('dmtx.png')
     # print(decode(Image.open('dmtx.png')))
 
 
 if __name__ == '__main__':
-    Sheets = []
-    Sheets.append(DmcSheet('jeden', 'A4'))
-
-    test = DmcSheet('jeden', 'A4')
-    # print(test.name, test.size)
-    Sheets[0].add_dmc('variant_no')
-    # test.add_dmc('variant_no1')
-    # print(test.dmc_config[0].name)
-    # print(test.dmc_config[1].name)
-    Sheets[0].dmc_config[0].set_count(10)
-    Sheets[0].dmc_config[0].add_dmc_part(DmcConfig.DmcConfigConstant('4500000010'))
-    Sheets[0].dmc_config[0].add_dmc_part(DmcConfig.DmcConfigCounter(1, 1, 3))
-
-    # print(test.dmc_config[0].dmc_part[0].type)
-    # print(test.dmc_config[0].dmc_part[0].chars_num)
-    # print(test.dmc_config[0].dmc_part[1].type)
-    # print(test.dmc_config[0].dmc_part[1].phrase)
-
-    # print('------')
-    # test.display_sheet()
-
-    selector = 0
-
-    while selector != 9:
-
-        match selector:
-            case 0:
-                print('Sheets: ', len(Sheets))
-                for sheet in Sheets:
-                    print(sheet.name)
-            case 1:
-                dmcs = Sheets[0].dmc_config[0].get_dmcs()
-                print(dmcs)
-                generate(dmcs)
-            case 9:
-                break
-
-        selector = int(input('Select option'))
-
-    print('end')
+    pass
