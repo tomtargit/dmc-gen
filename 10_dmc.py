@@ -119,7 +119,8 @@ if __name__ == '__main__':
         match selector:
             case 0:
                 print('Sheets: ', len(Sheets))
-
+                for sheet in Sheets:
+                    print(sheet.name)
             case 1:
                 dmcs = Sheets[0].dmc_config[0].get_dmcs()
                 print(dmcs)
