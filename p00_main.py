@@ -4,19 +4,23 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
 import os
-
 from p10_dmc import *
 
 
 def main():
-    Sheets = []
-    Sheets.append(DmcSheet('jeden', 'A4'))
+    sheets = []
+    sheets.append(DmcSheet('jeden', 'A4'))
 
-    test = DmcSheet('jeden', 'A4')
-    Sheets[0].add_dmc('variant_no')
-    Sheets[0].dmc_config[0].set_count(10)
-    Sheets[0].dmc_config[0].add_dmc_part(DmcConfig.DmcConfigConstant('4500000010'))
-    Sheets[0].dmc_config[0].add_dmc_part(DmcConfig.DmcConfigCounter(1, 1, 3))
+    sheets[0].add_dmc('variant_no')
+    sheets[0].dmc_config[0].set_count(10)
+    sheets[0].dmc_config[0].set_size(10)
+    sheets[0].dmc_config[0].add_dmc_part(DmcConfig.DmcConfigConstant('4500000010'))
+    sheets[0].dmc_config[0].add_dmc_part(DmcConfig.DmcConfigCounter(1, 1, 3))
+    sheets[0].add_dmc('body')
+    sheets[0].dmc_config[1].set_count(10)
+    sheets[0].dmc_config[1].set_size(15)
+    sheets[0].dmc_config[1].add_dmc_part(DmcConfig.DmcConfigConstant('5555100030'))
+    sheets[0].dmc_config[1].add_dmc_part(DmcConfig.DmcConfigCounter(1, 1, 3))
 
 
     selector = 0
@@ -26,8 +30,8 @@ def main():
         match selector:
             case 0:
                 os.system('cls')
-                print('Sheets: ', len(Sheets))
-                for idx, sheet in enumerate(Sheets):
+                print('Sheets: ', len(sheets))
+                for idx, sheet in enumerate(sheets):
                     print('\t', idx, ":", sheet.name)
                 print("\n")
                 print("1: Create new sheet")
@@ -37,17 +41,17 @@ def main():
             case 1:
                 tmp_name = str(input('Insert name '))
                 tmp_format = str(input('Insert format '))
-                Sheets.append(DmcSheet(tmp_name, tmp_format))
+                sheets.append(DmcSheet(tmp_name, tmp_format))
 
             case 2:
                 tmp_sheet_idx = int(input('Insert sheet id: '))
-                Sheets[tmp_sheet_idx].display_sheet()
-                Sheets[tmp_sheet_idx].generate_pdf()
+                #sheets[tmp_sheet_idx].display_sheet()
+                sheets[tmp_sheet_idx].generate_pdf()
 
 
 
             case 5:
-                dmcs = Sheets[0].dmc_config[0].get_dmcs()
+                dmcs = sheets[0].dmc_config[0].get_dmcs()
                 print(dmcs)
                # generate(dmcs)
 
