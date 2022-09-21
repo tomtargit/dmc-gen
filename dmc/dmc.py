@@ -13,7 +13,7 @@ from . import constants as c
 
 
 # TODO: define if number should be printed beneath code
-class DmcConfig:
+class DmcCfg:
 
     def __init__(self, arg_name):
         self.name = arg_name
@@ -32,9 +32,9 @@ class DmcConfig:
         for x in range(self.count):
             result_dmc = ''
             for item in self.dmc_part:
-                if type(item) == DmcConfigConstant:
+                if type(item) == DmcCfgConstant:
                     result_dmc += item.phrase
-                if type(item) == DmcConfigCounter:
+                if type(item) == DmcCfgCounter:
                     result_dmc += str(int(item.start)+x*int(item.step)).zfill(item.chars_num)
             print(result_dmc)
             self.dmcs.append(result_dmc)
@@ -50,8 +50,8 @@ class DmcConfig:
         self.quiet_zone = arg_quiet_zone
 
     def add_dmc_part(self, arg_data):
-        if type(arg_data) == DmcConfigConstant \
-                or type(arg_data) == DmcConfigCounter:
+        if type(arg_data) == DmcCfgConstant \
+                or type(arg_data) == DmcCfgCounter:
             self.dmc_part.append(arg_data)
         else:
             print('----Data not valid')
@@ -59,9 +59,9 @@ class DmcConfig:
     def display_config(self):
         print('\t', self.name, self.size, self.quiet_zone, self.count)
         for item in self.dmc_part:
-            if type(item) == DmcConfigConstant:
+            if type(item) == DmcCfgConstant:
                 print('\t\t', item.type, item.phrase)
-            if type(item) == DmcConfigCounter:
+            if type(item) == DmcCfgCounter:
                 print('\t\t', item.type, 'start', item.start, 'by', item.step, 'characters', item.chars_num)
 
         # def main():
@@ -71,14 +71,14 @@ class DmcConfig:
         #     pdf.cell(txt="hello world")
         #     pdf.output("hello_world.pdf")
 
-class DmcConfigCounter:
+class DmcCfgCounter:
     def __init__(self, start, step, chars_num):
         self.type = 'Counter'
         self.start = start
         self.step = step
         self.chars_num = chars_num
 
-class DmcConfigConstant:
+class DmcCfgConstant:
     def __init__(self, phrase):
         self.type = 'Constant'
         self.phrase = phrase
@@ -92,7 +92,7 @@ class DmcSheet:  # sheet can contain many DmcConfigs
         self.dmc_config = []
 
     def add_dmc(self, name):
-        self.dmc_config.append(DmcConfig(name))
+        self.dmc_config.append(DmcCfg(name))
 
     def display_sheet(self):
         print('Sheet config: ', self.name, self.size)
