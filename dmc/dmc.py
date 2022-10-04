@@ -1,8 +1,3 @@
-# pip install pylibdmtx
-# pip install pylibdmtx[scripts]
-
-# sudo apt-get install libdmtx0b
-# pip install fpdf2
 
 # load
 from pylibdmtx.pylibdmtx import encode, decode
@@ -17,12 +12,11 @@ class DmcCfg:
 
     def __init__(self, arg_name):
         self.name = arg_name
-        self.size = 0
-        self.quiet_zone = 0
+        self.size = 1
+        self.quiet_zone = 1
         self.count = 0
         self.dmc_part = []
         self.dmcs = []
-
 
     def to_json(self):
         json.dumps(self.__dict__)
@@ -32,9 +26,9 @@ class DmcCfg:
         for x in range(self.count):
             result_dmc = ''
             for item in self.dmc_part:
-                if type(item) == DmcCfgConstant:
+                if isinstance(item,DmcCfgConstant):
                     result_dmc += item.phrase
-                if type(item) == DmcCfgCounter:
+                if isinstance(item,DmcCfgCounter):
                     result_dmc += str(int(item.start)+x*int(item.step)).zfill(item.chars_num)
             print(result_dmc)
             self.dmcs.append(result_dmc)
@@ -50,8 +44,8 @@ class DmcCfg:
         self.quiet_zone = arg_quiet_zone
 
     def add_dmc_part(self, arg_data):
-        if type(arg_data) == DmcCfgConstant \
-                or type(arg_data) == DmcCfgCounter:
+        if isinstance(arg_data,DmcCfgConstant) \
+                or isinstance(arg_data,DmcCfgCounter):
             self.dmc_part.append(arg_data)
         else:
             print('----Data not valid')
@@ -59,9 +53,9 @@ class DmcCfg:
     def display_config(self):
         print('\t', self.name, self.size, self.quiet_zone, self.count)
         for item in self.dmc_part:
-            if type(item) == DmcCfgConstant:
+            if isinstance(item,DmcCfgConstant):
                 print('\t\t', item.type, item.phrase)
-            if type(item) == DmcCfgCounter:
+            if isinstance(item,DmcCfgCounter):
                 print('\t\t', item.type, 'start', item.start, 'by', item.step, 'characters', item.chars_num)
 
         # def main():
@@ -72,23 +66,23 @@ class DmcCfg:
         #     pdf.output("hello_world.pdf")
 
 class DmcCfgCounter:
-    def __init__(self, start, step, chars_num):
+    def __init__(self, start=0, step=1, chars_num=1):
         self.type = 'Counter'
         self.start = start
         self.step = step
         self.chars_num = chars_num
 
 class DmcCfgConstant:
-    def __init__(self, phrase):
+    def __init__(self, phrase='text'):
         self.type = 'Constant'
         self.phrase = phrase
 
 
 class DmcSheet:  # sheet can contain many DmcConfigs
-    def __init__(self, arg_name, arg_size):
+    def __init__(self, arg_name,  arg_size='A4', orientation='P'):
         self.name = arg_name
         self.size = arg_size
-        self.orientation = 'P'
+        self.orientation = orientation
         self.dmc_config = []
 
     def add_dmc(self, name):
