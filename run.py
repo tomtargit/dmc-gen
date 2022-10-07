@@ -1,15 +1,20 @@
 # This file runs application.
 
-from multiprocessing import parent_process
+# basic functions
 import os
-from pyexpat import model
+
+# gui building
 import tkinter as tk
 from tkinter import *  
 from tkinter import ttk
+from tkinter import filedialog
 from PIL import ImageTk, Image
 
+# dmc objects
 from dmc.dmc import DmcCfg, DmcSheet, DmcCfgConstant, DmcCfgCounter
-from dmc.constants import * 
+import dmc.constants as c
+
+# project handler
 from project.project import Project
 
 def main():
@@ -60,6 +65,7 @@ class DisplaySheet():
 
         # Frame that contatins single sheet definition
         self.frame = ttk.Frame(parent)
+        self.frame.configure(relief='groove', borderwidth=1, padding=5)
 
         # self.frame.columnconfigure(0, weight=2)
         # self.frame.columnconfigure(1, weight=3)
@@ -102,6 +108,7 @@ class DisplaySheet():
 class DisplayDmc():
     def __init__(self, parent_vars, parent, dmc, dmc_idx, unique_id):
         self.frame = ttk.Frame(parent)
+        self.frame.configure(relief='groove', borderwidth=2, padding=5)
         self.name = StringVar(value=dmc.name, name=f'{unique_id}_dmc_{dmc_idx}_name')
         self.name.trace('w',simple_trace)
         self.size = IntVar(value=dmc.size, name=f'{unique_id}_dmc_{dmc_idx}_size')
@@ -117,7 +124,7 @@ class DisplayDmc():
 
         self.dmc_parts = []
         for idx, dmc_part in enumerate(dmc.dmc_part):
-            print(dmc_part.type)
+            # print(dmc_part.type)
             self.dmc_parts.append(DisplayDmcPart(parent_vars, self.frame, dmc_part, idx, unique_id, dmc_idx))
             self.dmc_parts[idx].show(idx)
 
@@ -133,17 +140,18 @@ class DisplayDmc():
 class DisplayDmcPart():
     def __init__(self, parent_vars, parent, dmc_part, dmc_part_idx, unique_id, dmc_idx):
         
-        self.typeint = DMC_PART_TYPE.index(dmc_part.type)
-        print(f'xx_{self.typeint}')
+        #self.typeint = DMC_PART_TYPE.index(dmc_part.type)
+        #print(f'xx_{self.typeint}')
         # Type
-        self.type = IntVar(value=self.typeint, name=f'{unique_id}_dmc_{dmc_idx}_part_{dmc_part_idx}_type')
+        self.type = StringVar(value=dmc_part.type, name=f'{unique_id}_dmc_{dmc_idx}_part_{dmc_part_idx}_type')
         self.type.trace('w',simple_trace)
-        self.type_box = ttk.Entry(parent, textvariable=self.type)
+        self.type_box = ttk.Combobox(parent, textvariable=self.type)
+        self.type_box['values'] = c.DMC_PART_TYPE
+
         parent_vars.inputvars.append(self.type)
 
 
         if isinstance(dmc_part, DmcCfgConstant):
-            print('is constant')
             # Phrase
             self.phrase = StringVar(value=dmc_part.phrase, name=f'{unique_id}_dmc_{dmc_idx}_part_{dmc_part_idx}_phrase')
             self.phrase.trace('w',simple_trace)
@@ -151,7 +159,6 @@ class DisplayDmcPart():
             parent_vars.inputvars.append(self.phrase)
 
         if isinstance(dmc_part, DmcCfgCounter):  
-            print('is counter')
             # Start 
             self.start = IntVar(value=dmc_part.start, name=f'{unique_id}_dmc_{dmc_idx}_part_{dmc_part_idx}_start')
             self.start.trace('w',simple_trace)
@@ -177,15 +184,15 @@ class DisplayDmcPart():
         # self.frame.grid_columnconfigure(2,weight=1)
         self.type_box.grid(column=1, row=index+1, sticky='nw')
 
-        match self.typeint:
-            case 0:
-                self.phrase_box.grid(column=2, row=index+1, sticky='nw')
-            case 1:
-                self.start_box.grid(column=2, row=index+1, sticky='nw')
-                self.step_box.grid(column=3, row=index+1, sticky='nw')
-                self.chars_num_box.grid(column=4, row=index+1, sticky='nw')
-            case default:
-                pass
+        if self.type.get() == c.DMC_PART_TYPE[0]:
+            self.phrase_box.grid(column=2, row=index+1, sticky='nw')
+
+        if self.type.get() == c.DMC_PART_TYPE[1]:
+            self.start_box.grid(column=2, row=index+1, sticky='nw')
+            self.step_box.grid(column=3, row=index+1, sticky='nw')
+            self.chars_num_box.grid(column=4, row=index+1, sticky='nw')          
+
+
  
 
 #Display
@@ -212,7 +219,7 @@ class MenuFile(tk.Menu):
         self.parent = parent
 
         self.add_command(label='New  project')#, command=close_window)
-        self.add_command(label='Open project')#, command=self.dummy)
+        self.add_command(label='Open project', command=open_project)
         self.add_separator()
         self.add_command(label='Close', command=close_window)
 
@@ -222,8 +229,8 @@ class FrameMain(ttk.Frame):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.grid(column=0, row=0)
         self.columnconfigure(0, weight=5)
+        self.grid(column=0, row=0)
 
 
 class FrameEdit(ttk.Frame):
@@ -232,9 +239,7 @@ class FrameEdit(ttk.Frame):
         super().__init__()
         self.parent = parent
         self.width = 800
-        self.configure(padding=0)
-        #self['relief'] = 'sunken'
-        #self = ttk.Frame(parent, width=800, borderwidth=2, padding=10, relief='sunken')
+        self.configure(padding=2, relief='groove', borderwidth=2)
         self.grid(column=0, row=0, sticky='nw')
         self.columnconfigure(0, weight=1)
         self.inputvars = []
@@ -263,6 +268,7 @@ class FrameButtons(ttk.Frame):
         #self = ttk.Frame(parent, borderwidth=2, padding=10, relief='groove')
         self.grid(column=1, row=0, sticky='ne')
         self.columnconfigure(0, weight=0)
+        self.configure(relief='groove', borderwidth=2, padding=2)
 
         self.add_sheet = ttk.Button(self, text='Add new sheet', width=30, command=add_new_sheet)
         self.add_sheet.grid(column=0, row=0)
@@ -302,7 +308,7 @@ def add_new_dmc():
 def simple_trace(name,test,mode):
     print(f"{name},{test},{mode}")
     for idx,var in enumerate(root.frame_edit.inputvars):
-        print(f'idx:{idx}')
+        #print(f'idx:{idx}')
         if name == str(var):
             print(var.get())
     
@@ -332,68 +338,19 @@ def display():
         #     root.frame_edit.sheet[id0x]
 
 
+def open_project():
+    filename = filedialog.askopenfilename()
+
+
 def close_window():
     # msgbox ?
     root.after(3000,root.destroy())
-
-
-    # frame_main = FrameMain(root)
-    # frame_edit = FrameEdit(frame_main)
-    # frame_buttons = FrameButtons(frame_main)
-
-    # menu_bar = MenuBar(root)
-    # menu_file = MenuFile(menu_bar)
-
-    # menu_bar.add_menu_list(menu_file,'File')
-    # root.assign_menu(menu_bar)
-
-    #menu_bar = Menu(root)
-    #root['menu'] = menu_bar
-
-
-    # global project
-    # project = Project('test')
-
-
-    # def close_window():
-    #     root.after(3000,root.destroy())
-
-
 
     # def close():
     #     #msg box if save?
     #     pass
 
-    
-
-    #label_test = ttk.Label(frame_edit, text='test')
-    #label_test.grid(column=0, row=0)
-
-
-
-
-
-
-    # selector = 0
-
-    # while selector != 9:
-
-    #     match selector:
-    #         case 0:
-    #             os.system('cls||clear')
-    #             print('Sheets: ', len(sheets))
-    #             for idx, sheet in enumerate(sheets):
-    #                 print('\t', idx, ":", sheet.name)
-    #             print("\n")
-    #             print("1: Create new sheet")
-    #             print("2: Display sheet")
-    #             print("4: Delete sheet")
-
-    #         case 1:
-    #             tmp_name = str(input('Insert name '))
-    #             tmp_format = str(input('Insert format '))
-    #             sheets.append(DmcSheet(tmp_name, tmp_format))
-
+  
     #         case 2:
     #             tmp_sheet_idx = int(input('Insert sheet id: '))
     #             #sheets[tmp_sheet_idx].display_sheet()
@@ -407,8 +364,6 @@ def close_window():
     #             print(dmcs)
     #            # generate(dmcs)
 
-    #         case 9:
-    #             break
 
 # Main
 if __name__ == '__main__':
