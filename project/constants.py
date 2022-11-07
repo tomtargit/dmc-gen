@@ -1,0 +1,2 @@
+SHEET_SIZES = ('A4',)
+SHEET_ORIENTATION = ('P','L')

@@ -11,8 +11,10 @@ from tkinter import filedialog
 from PIL import ImageTk, Image
 
 # dmc objects
-from dmc.dmc import DmcCfg, DmcSheet, DmcCfgConstant, DmcCfgCounter
-import dmc.constants as c
+from dmc.dmc import Dmc, DmcPartConstant, DmcPartCounter
+from project.project import Sheet
+import dmc.constants as c_dmc
+import project.constants as c_project
 
 # project handler
 from project.project import Project
@@ -20,20 +22,23 @@ from project.project import Project
 
 def main():
     global root
+    global callback_function
     root = App()
+    callback_function = root.register(validate_entry_int)
     root.mainloop()
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        # Import tkinter styles - must be done here, tk-window object must exists while importing
+        # Import tkinter styles - must be done here, 
+        # tk-window object must exist while importing
         import gui.styles as s
         s.s_edit_sheet.layout('EditSheet.TFrame')
 
         # Root window setting
         self.minsize(500,300)
-        self.title('Datamatrix generator')
+        self.title('DataMatrixCode generator')
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.option_add('*tearOff', FALSE) # remove dash line from menu
@@ -71,29 +76,61 @@ class DisplaySheet():
 
         # Frame that contatins single sheet definition
         self.frame = ttk.Frame(parent)
-        self.frame.configure(style='EditSheet.TFrame', padding=10)
+        self.frame.configure(
+            style='EditSheet.TFrame', 
+            padding=0, 
+            relief='groove',
+            borderwidth=3)
         
 
         # Sheet parameter - name 
-        self.name = StringVar(value=sheet.name, name=generate_varname(uid, 'name')) 
+        self.name = StringVar(
+            value=sheet.name, 
+            name=gen_varname(uid, 'name')
+            )
         self.name.trace('w',edit_trace)
-        self.name_box = ttk.Entry(self.frame, textvariable=self.name)   # entry field definition
-        self.name_label = ttk.Label(self.frame, text='Name')
+        self.name_box = ttk.Entry(
+            self.frame, 
+            textvariable=self.name
+            )   
+        self.name_label = ttk.Label(
+            self.frame, 
+            text='Name'
+            )
+
 
         # Sheet parameter - size
-        self.size = StringVar(value=sheet.size, name=generate_varname(uid, 'size')) 
+        self.size = StringVar(
+            value=sheet.size, 
+            name=gen_varname(uid, 'size')
+            ) 
         self.size.trace('w',edit_trace)
-        self.size_box = ttk.Combobox(self.frame, textvariable=self.size, state='readonly')
-        self.size_box['values'] = c.SHEET_SIZES
-        self.size_label = ttk.Label(self.frame, text='Size')
+        self.size_box = ttk.Combobox(
+            self.frame, 
+            textvariable=self.size, 
+            state='readonly', 
+            width=10
+            )
+        self.size_box['values'] = c_project.SHEET_SIZES
+        self.size_label = ttk.Label(
+            self.frame, 
+            text='Size', 
+            background='pink')
 
         # Sheet parameter - oriantation
-        self.orientation = StringVar(value=sheet.orientation, name=generate_varname(uid, 'orientation')) 
+        self.orientation = StringVar(
+            value=sheet.orientation, 
+            name=gen_varname(uid, 'orientation')
+            ) 
         self.orientation.trace('w',edit_trace)
-        self.orientation_box = ttk.Combobox(self.frame, textvariable=self.orientation, state='readonly')
-        self.orientation_box['values'] = c.SHEET_ORIENTATION
-        self.orientation_label = ttk.Label(self.frame, text='Orientation')
-
+        self.orientation_box = ttk.Combobox(
+            self.frame, 
+            textvariable=self.orientation, 
+            state='readonly', width=10
+            )
+        self.orientation_box['values'] = c_project.SHEET_ORIENTATION
+        self.orientation_label = ttk.Label(
+            self.frame, text='Orientation', background='yellow')
 
         # Assign variables for tracing
         parent.inputvars.append(self.name)
@@ -113,15 +150,16 @@ class DisplaySheet():
 
         # define and configure columns
 
-        for idx in range(0,5):
-            self.frame.columnconfigure(idx,weight=1)
+        for idx in range(0,2):
+            self.frame.grid_columnconfigure(idx,weight=0)
+            self.frame.grid_rowconfigure(idx,weight=0)
 
-        self.name_label.grid(column=0, row=0, sticky='nwse')
-        self.name_box.grid(column=1, row=0, sticky='nwse')
-        self.size_label.grid(column=2, row=0, sticky='nwse')
-        self.size_box.grid(column=3, row=0, sticky='nwse')
-        self.orientation_label.grid(column=4, row=0, sticky='nwse')
-        self.orientation_box.grid(column=5, row=0, sticky='nwse')
+        self.name_label.grid(column=0, row=0, sticky='nw')
+        self.name_box.grid(column=1, row=0, sticky='nw', columnspan=2)
+        self.size_label.grid(column=0, row=1, sticky='nw')
+        self.size_box.grid(column=1, row=1, sticky='nw')
+        self.orientation_label.grid(column=0, row=2, sticky='nw')
+        self.orientation_box.grid(column=1, row=2, sticky='nw')
 
     def hide(self):
         print(self.frame.winfo_exists())
@@ -131,8 +169,10 @@ class DisplaySheet():
         print(self.frame.winfo_exists())       
 
     def unhide(self, index):
-        self.frame.grid(column=0, row=index, sticky='nwse', pady=(10,10))
+        self.frame.grid(column=0, row=index, sticky='nwe', pady=(10,10))
 
+    def destroy(self):
+        self.frame.destroy()
 
 class DisplayDmc():
     def __init__(self, parent_vars, parent, dmc, dmc_idx, uid_id):
@@ -142,23 +182,53 @@ class DisplayDmc():
         self.frame.configure(style='EditDmc.TFrame')
 
         # Name
-        self.name = StringVar(value=dmc.name, name=generate_varname(uid_id, dmc_idx, 'name')) 
+        self.name = StringVar(
+            master=self.frame,
+            value=dmc.name, 
+            name=gen_varname(uid_id, dmc_idx, 'name')
+            ) 
         self.name.trace('w',edit_trace)
-        self.name_box = ttk.Entry(self.frame, textvariable=self.name, style='EditEntry.TEntry')
-        self.name_label = ttk.Label(self.frame, text='Name:', style='EditLabel.TLabel')
+        self.name_box = ttk.Entry(
+            self.frame, 
+            textvariable=self.name, 
+            style='EditEntry.TEntry'
+            )
+        self.name_label = ttk.Label(
+            self.frame, 
+            text='Name:', 
+            style='EditLabel.TLabel'
+            )
 
         # Size
-        self.size = IntVar(value=dmc.size, name=generate_varname(uid_id, dmc_idx, 'size')) 
+        self.size = IntVar(
+            master=self.frame,
+            value=dmc.size, 
+            name=gen_varname(uid_id, dmc_idx, 'size'),
+            ) 
         self.size.trace('w',edit_trace)
-        self.size_box = ttk.Entry(self.frame, textvariable=self.size, style='EditEntry.TEntry')
-        self.size_label= ttk.Label(self.frame, text='Size:', style='EditLabel.TLabel')
+        self.size_box = ttk.Entry(
+            self.frame, 
+            textvariable=self.size, 
+            name = 'size',
+            validate = 'all',
+            validatecommand=(callback_function, '%P', '%W'),
+            style='EditEntry.TEntry')
+        self.size_label= ttk.Label(
+            self.frame, text='Size:', 
+            style='EditLabel.TLabel')
 
         # Quiet zone
-        self.quiet_zone = IntVar(value=dmc.quiet_zone, name=generate_varname(uid_id, dmc_idx, 'quiet_zone')) 
+        self.quiet_zone = IntVar(
+            master=self.frame,
+            value=dmc.quiet_zone, 
+            name=gen_varname(uid_id, dmc_idx, 'quiet_zone')) 
         self.quiet_zone.trace('w',edit_trace)
         self.quiet_zone_box = ttk.Combobox(self.frame, textvariable=self.quiet_zone, state='readonly', style='EditCombobox.TCombobox')
-        self.quiet_zone_box['values'] = c.QUIET_ZONE
-        self.quiet_zone_label = ttk.Label(self.frame, text='Quiet zone:', style='EditLabel.TLabel')
+        self.quiet_zone_box['values'] = c_dmc.QUIET_ZONE
+        self.quiet_zone_label = ttk.Label(
+            self.frame, 
+            text='Quiet zone:', 
+            style='EditLabel.TLabel')
 
         # Assign variables for tracing
         parent_vars.inputvars.append(self.name)
@@ -173,16 +243,22 @@ class DisplayDmc():
 
     def show(self, index):
         # show single DMC config frame
-        self.frame.grid(column=0, row=index+1, columnspan=5, padx=(30,0), sticky='nwse')
+        self.frame.grid(column=3, row=index, padx=(30,0), pady=(10,10), sticky='nwse')
+        #self.frame.grid(column=0, row=index+1, columnspan=5, padx=(30,0), sticky='nwse')
 
         # define and configure columns
         for idx in range(0,5):
             self.frame.columnconfigure(idx,weight=1)
 
-        self.name_label.grid(column=0, row=0, sticky='nwse')
-        self.name_box.grid(column=1, row=0, sticky='nwse')
-        self.size_box.grid(column=2, row=0, sticky='nwse')
-        self.quiet_zone_box.grid(column=3, row=0, sticky='nwse')  
+        self.name_label.grid(column=0, row=0, sticky='nw')
+        self.name_box.grid(column=1, row=0, sticky='nw')
+        self.size_label.grid(column=2, row=0, sticky='nw')
+        self.size_box.grid(column=3, row=0, sticky='nw')
+        self.quiet_zone_label.grid(column=4, row=0, sticky='nw')
+        self.quiet_zone_box.grid(column=5, row=0, sticky='nw') 
+
+    def destroy(self):
+        self.frame.destroy()
 
 class DisplayDmcPart():
     def __init__(self, parent_vars, parent, dmc_part, dmc_part_idx, uid, dmc_idx):
@@ -191,64 +267,109 @@ class DisplayDmcPart():
         self.frame.configure(style='EditDmcPart.TFrame')
 
         # Type
-        self.type = StringVar(value=dmc_part.type, name=generate_varname(uid, dmc_idx, dmc_part_idx, 'type')) 
+        self.type = StringVar(
+            master=self.frame,
+            value=dmc_part.type, 
+            name=gen_varname(uid, dmc_idx, dmc_part_idx, 'type')) 
         self.type.trace('w',edit_trace)
         self.type_box = ttk.Combobox(self.frame, textvariable=self.type, state='readonly')
-        self.type_box['values'] = c.DMC_PART_TYPE
+        self.type_box['values'] = c_dmc.DMC_PART_TYPE
 
         parent_vars.inputvars.append(self.type)
 
 
-        if isinstance(dmc_part, DmcCfgConstant):
+        if isinstance(dmc_part, DmcPartConstant):
             # Phrase
-            self.phrase = StringVar(value=dmc_part.phrase, name=generate_varname(uid, dmc_idx, dmc_part_idx, 'phrase')) 
+            self.phrase = StringVar(
+                master=self.frame,
+                value=dmc_part.phrase, 
+                name=gen_varname(uid, dmc_idx, dmc_part_idx, 'phrase')) 
             self.phrase.trace('w',edit_trace)
             self.phrase_box = ttk.Entry(self.frame, textvariable=self.phrase)
+            self.phrase_label = ttk.Label(            
+                self.frame, 
+                text='Phrase:', 
+                style='EditLabel.TLabel'
+                )
             parent_vars.inputvars.append(self.phrase)
 
-        if isinstance(dmc_part, DmcCfgCounter):  
+        if isinstance(dmc_part, DmcPartCounter):  
             # Start 
-            self.start = IntVar(value=dmc_part.start, name=generate_varname(uid, dmc_idx, dmc_part_idx, 'start')) 
+            self.start = IntVar(
+                master=self.frame,
+                value=dmc_part.start, 
+                name=gen_varname(uid, dmc_idx, dmc_part_idx, 'start')) 
             self.start.trace('w',edit_trace)
             self.start_box = ttk.Entry(self.frame, textvariable=self.start)
+            self.start_label = ttk.Label(            
+                self.frame, 
+                text='Start:', 
+                style='EditLabel.TLabel'
+                )
             parent_vars.inputvars.append(self.start)
 
             # Step
-            self.step = IntVar(value=dmc_part.step, name=generate_varname(uid, dmc_idx, dmc_part_idx, 'step')) 
+            self.step = IntVar(
+                master=self.frame,
+                value=dmc_part.step, 
+                name=gen_varname(uid, dmc_idx, dmc_part_idx, 'step')) 
             self.step.trace('w',edit_trace)
             self.step_box = ttk.Entry(self.frame, textvariable=self.step)
+            self.step_label = ttk.Label(            
+                self.frame, 
+                text='Step:', 
+                style='EditLabel.TLabel'
+                )
             parent_vars.inputvars.append(self.step)
 
             # Number of characters
-            self.chars_num = IntVar(value=dmc_part.chars_num, name=generate_varname(uid, dmc_idx, dmc_part_idx, 'chars_num')) 
+            self.chars_num = IntVar(
+                master=self.frame,
+                value=dmc_part.chars_num, 
+                name=gen_varname(uid, dmc_idx, dmc_part_idx, 'chars_num')) 
             self.chars_num.trace('w',edit_trace)
             self.chars_num_box = ttk.Entry(self.frame, textvariable=self.chars_num)
+            self.chars_num_label = ttk.Label(            
+                self.frame, 
+                text='Chars num:', 
+                style='EditLabel.TLabel'
+                )
             parent_vars.inputvars.append(self.chars_num)
 
     def show(self, index):
         # show single DMC config frame
-        self.frame.grid(column=0, row=index+1, columnspan=5, padx=(30,0), sticky='nwse')
+        self.frame.grid(column=0, row=index+3, columnspan=5, padx=(30,0), pady=(10,10), sticky='nwse')
 
         # define and configure columns
         for idx in range(0,5):
             self.frame.columnconfigure(idx,weight=0)
 
-        self.type_box.grid(column=0, row=index+1, sticky='nw')
+        self.type_box.grid(column=0, row=index+2, sticky='nw')
 
         # TODO try match/case
-        if self.type.get() == c.DMC_PART_TYPE[0]:
-            self.phrase_box.grid(column=1, row=index+1, sticky='nw')
+        if self.type.get() == c_dmc.DMC_PART_TYPE[0]:
+            self.phrase_label.grid(column=1, row=index+1, sticky='nw')
+            self.phrase_box.grid(column=1, row=index+2, sticky='nw')
 
-        if self.type.get() == c.DMC_PART_TYPE[1]:
-            self.start_box.grid(column=1, row=index+1, sticky='nw')
-            self.step_box.grid(column=2, row=index+1, sticky='nw')
-            self.chars_num_box.grid(column=3, row=index+1, sticky='nw')          
+
+        if self.type.get() == c_dmc.DMC_PART_TYPE[1]:
+            self.start_label.grid(column=1, row=index+1, sticky='nw')
+            self.start_box.grid(column=1, row=index+2, sticky='nw')
+
+            self.step_label.grid(column=2, row=index+1, sticky='nw')
+            self.step_box.grid(column=2, row=index+2, sticky='nw')
+
+            self.chars_num_label.grid(column=3, row=index+1, sticky='nw')
+            self.chars_num_box.grid(column=3, row=index+2, sticky='nw')          
 
         # match str(self.type.get()):
         #     case str(c.DMC_PART_TYPE(0)):
         #         print('type0')
         #     case str(c.DMC_PART_TYPE(1)):
         #         print('type1')    
+
+    def destroy(self):
+        self.frame.destroy()
 
 
  # TODO add validation function to entries.
@@ -341,24 +462,27 @@ class FrameButtons(ttk.Frame):
         self.display_all = ttk.Button(self, text='Display all', width=30, command=display)
         self.display_all.grid(column=0, row=3)
 
+        self.display_all = ttk.Button(self, text='Destroy all', width=30, command=destroy_all)
+        self.display_all.grid(column=0, row=4)
+
         self.add_dmc = ttk.Button(self, text='Add DMC', width=30, command=add_new_dmc)
-        self.add_dmc.grid(column=0, row=4)
+        self.add_dmc.grid(column=0, row=5)
 
 def add_new_sheet():
 
     new_sheet_id = len(root.project.sheets) 
 
-    root.project.AddSheet(DmcSheet(f'test sheet {new_sheet_id}','A4'))
+    root.project.AddSheet(Sheet(new_sheet_id, f'test sheet {new_sheet_id}','A4'))
     root.project.sheets[new_sheet_id].add_dmc('variant_no')
     root.project.sheets[new_sheet_id].dmc_config[0].set_count(10)
     root.project.sheets[new_sheet_id].dmc_config[0].set_size(10)
-    root.project.sheets[new_sheet_id].dmc_config[0].add_dmc_part(DmcCfgConstant('4500000010'))
-    root.project.sheets[new_sheet_id].dmc_config[0].add_dmc_part(DmcCfgCounter(1, 1, 3))
+    root.project.sheets[new_sheet_id].dmc_config[0].add_dmc_part(DmcPartConstant('4500000010'))
+    root.project.sheets[new_sheet_id].dmc_config[0].add_dmc_part(DmcPartCounter(1, 1, 3))
     root.project.sheets[new_sheet_id].add_dmc('body')
     root.project.sheets[new_sheet_id].dmc_config[1].set_count(10)
     root.project.sheets[new_sheet_id].dmc_config[1].set_size(15)
-    root.project.sheets[new_sheet_id].dmc_config[1].add_dmc_part(DmcCfgConstant('5555100030'))
-    root.project.sheets[new_sheet_id].dmc_config[1].add_dmc_part(DmcCfgCounter(1, 1, 3))
+    root.project.sheets[new_sheet_id].dmc_config[1].add_dmc_part(DmcPartConstant('5555100030'))
+    root.project.sheets[new_sheet_id].dmc_config[1].add_dmc_part(DmcPartCounter(1, 1, 3))
 
     print('added')
 
@@ -370,11 +494,24 @@ def add_new_dmc():
     pass    
 
 # Generates variable names for tracking of user changes. 
-def generate_varname(uid, *args):
+def gen_varname(uid, *args):
     name = str(uid)
     for a in args:
         name += f'#{a}'
     return name
+
+def validate_entry_int(value, name):
+        print(f'validate {value} {name}')# {name}')
+        try:
+            int(value)
+            if int(value) < 99:
+                return True
+            else:
+                return False
+        except:
+            return False
+
+
 
 # Tracing edit area changes
 def edit_trace(name,test,mode):
@@ -385,55 +522,88 @@ def edit_trace(name,test,mode):
             # retrieve name of var and its location from string varname
             vars = name.split('#')
 
-            # project uid - always first argument
-            project_uid = vars[0]
+            # sheet uid - always first argument
+            sheet_uid = int(vars[0])
 
             # if dmc config related:
-            dmc_idx = ''
+            dmc_idx = None
             if len(vars)>2:
-                dmc_idx = vars[1]
+                dmc_idx = int(vars[1])
 
             # if dmc_part config related
-            dmc_part_idx = ''
+            dmc_part_idx = None
             if len(vars)>3:
-                dmc_part_idx = vars[2]
+                dmc_part_idx = int(vars[2])
 
             # changed variable name - always last argument
             var_name = vars[-1]
 
             # new passed value
-            var_new_value = var.get()
+            new_value = var.get()
 
             # print
-            print(f'project_uid: {project_uid}, dmc_idx: {dmc_idx}, dmc_part_idx: {dmc_part_idx}, var_name: {var_name}, new_value: {var_new_value}')
+            print(f'sheet_uid: {sheet_uid}, dmc_idx: {dmc_idx}, dmc_part_idx: {dmc_part_idx}, var_name: {var_name}, new_value: {new_value}')
 
+            # Update project
+            update_project(root.project, sheet_uid, var_name, new_value,
+                           dmc_idx, dmc_part_idx)
 
+def update_project(project, sheet_uid, var_name, new_value,  
+                   dmc_idx=None, dmc_part_idx=None):
 
+    for sheet in project.sheets:
+        print (f'{sheet_uid}: {sheet.uid}')
+        if sheet.uid == sheet_uid:
+            print(f'inside, {dmc_idx}, {dmc_part_idx}')
+            if dmc_part_idx is not None:
+                match str(var_name):
+                    case 'type':
+                        sheet.dmc_config[dmc_idx].dmc_part[dmc_part_idx].type = new_value
+                    case 'phrase':
+                        sheet.dmc_config[dmc_idx].dmc_part[dmc_part_idx].phrase = new_value
+                    case 'start':
+                        sheet.dmc_config[dmc_idx].dmc_part[dmc_part_idx].start = new_value
+                    case 'step':
+                        sheet.dmc_config[dmc_idx].dmc_part[dmc_part_idx].step = new_value
+                    case 'chars_num':
+                        sheet.dmc_config[dmc_idx].dmc_part[dmc_part_idx].chars_num = new_value 
+                    case _: 
+                        print(f'1 var name not valid: {var_name}')
+            else:
+                if dmc_idx is not None:
+                    match str(var_name):
+                        case 'name':
+                            sheet.dmc_config[dmc_idx].name = new_value
+                        case 'size':
+                            sheet.dmc_config[dmc_idx].size = new_value
+                        case 'quiet_zone':
+                            sheet.dmc_config[dmc_idx].quiet_zone = new_value    
+                        case _: 
+                            print(f'2 var name not valid: {var_name}')
+                else:
+                    match str(var_name):
+                        case 'name':
+                            sheet.name = new_value
+                        case 'size':
+                            sheet.size = new_value
+                        case 'orientation':
+                            sheet.orientation = new_value    
+                        case _: 
+                            print(f'3 var name not valid: {var_name}')
+            print('updated')
+            break
 
+def destroy_all():
 
+    for sheet in root.sheet_frame:
+        sheet.destroy()
+
+            
 def display():
-    #root.project.sheets[0].display_sheet()
-    # for id0x, sheet in enumerate(project.sheets):
-    #     root.frame_edit.tree.insert('','end',f'id0_{id0x}'.zfill(3), text=sheet.name)
-    #     for id1x, dmc in enumerate(sheet.dmc_config):
-    #         root.frame_edit.tree.insert(f'id0_{id0x}'.zfill(3),'end',f'id1_{id1x}_name'.zfill(3), text=dmc.name)
-    # pass
     root.sheet_frame = []
     for id0x, sheet in enumerate(root.project.sheets):
-        root.sheet_frame.append(DisplaySheet(root.frame_edit, sheet, id0x, root.generate_uid))
+        root.sheet_frame.append(DisplaySheet(root.frame_edit, sheet, id0x, sheet.uid))
         root.sheet_frame[id0x].show(id0x)
-
-        # root.sheet_frame[id0x].grid(column=0, row=id0x)
-        # root.sheet_frame.main.append(ttk.Label(root.sheet_frame[id0x], text=sheet.name))
-        # root.sheet_frame.main.append(ttk.Label(root.sheet_frame[id0x], text=sheet.size))
-        # root.sheet_frame.main.append(ttk.Label(root.sheet_frame[id0x], text=sheet.orientation))
-        # root.sheet_frame.main[id0x].grid(column=0,row=0, sticky='wn')
-        # test_label = []
-        # for id1x, dmc in enumerate(sheet.dmc_config):
-        #     test_label.append(ttk.Label(root.sheet_frame[id0x], text=dmc.name))
-        #     test_label[id1x].grid(column=1, row=id1x+1, sticky='wn')
-        # for id1x, dmc in enumerate(sheet.dmc_config):
-        #     root.frame_edit.sheet[id0x]
 
 
 def open_project():
@@ -447,20 +617,6 @@ def close_window():
     # def close():
     #     #msg box if save?
     #     pass
-
-  
-    #         case 2:
-    #             tmp_sheet_idx = int(input('Insert sheet id: '))
-    #             #sheets[tmp_sheet_idx].display_sheet()
-    #             sheets[tmp_sheet_idx].generate_pdf()
-
-    #         case 3:
-    #             sheets[0].dmc_config[0].to_json()
-
-    #         case 5:
-    #             dmcs = sheets[0].dmc_config[0].get_dmcs()
-    #             print(dmcs)
-    #            # generate(dmcs)
 
 
 # Main
