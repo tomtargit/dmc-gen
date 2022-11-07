@@ -11,10 +11,21 @@ class Project:
         self.name = arg_name
         self.location = ''
         self.sheets = []
-
+        self.saved = False
+        self.gui = None
 
     def AddSheet(self, sheet):
         self.sheets.append(sheet)
+
+    def RemoveSheet(self, uid):
+        for sheet in self.sheets:
+            idx = self.sheets.index(sheet)
+            self.sheets.pop(idx)
+
+            
+ 
+
+    
 
 
     
