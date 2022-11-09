@@ -22,13 +22,6 @@ class Project:
             idx = self.sheets.index(sheet)
             self.sheets.pop(idx)
 
-            
- 
-
-    
-
-
-    
 class Sheet:  # sheet can contain many DmcConfigs
     def __init__(self, uid, arg_name,  arg_size='A4', orientation='P'):
         self.uid = uid
@@ -44,6 +37,17 @@ class Sheet:  # sheet can contain many DmcConfigs
         print('Sheet config: ', self.name, self.size)
         for item in self.dmc_config:
             item.display_config()
+
+    def generate(data):
+
+        encoded = encode(data.encode('utf8'), size='SquareAuto')
+        img = Image.frombytes('RGB', (encoded.width, encoded.height), encoded.pixels)
+        return img
+        # img.show()
+        # img.save('dmtx.png')
+        # print(decode(Image.open('dmtx.png')))
+        # TODO: add size definition for DMC genertion or DMC sizing when printing to PDF
+
 
     def generate_pdf(self):
         pdf = FPDF()
@@ -77,17 +81,6 @@ class Sheet:  # sheet can contain many DmcConfigs
                 pdf.cell(0, 0, dmcs, 0, 2)
 
         pdf.output("hello_world.pdf")
-
-    def generate(data):
-
-        encoded = encode(data.encode('utf8'), size='SquareAuto')
-        img = Image.frombytes('RGB', (encoded.width, encoded.height), encoded.pixels)
-        return img
-        # img.show()
-        # img.save('dmtx.png')
-        # print(decode(Image.open('dmtx.png')))
-        # TODO: add size definition for DMC genertion or DMC sizing when printing to PDF
-
 
 
 if __name__ == '__main__':

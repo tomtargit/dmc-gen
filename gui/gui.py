@@ -26,7 +26,8 @@ class App(tk.Tk):
         super().__init__()
 
         # Import tkinter styles - must be done here, 
-        # tk-window object must exist while importing
+        # tk-window object must exist while importing,
+        # other case creates new window at import
         import gui.styles as s
         s.s_edit_sheet.layout('EditSheet.TFrame')
 
@@ -62,7 +63,7 @@ class App(tk.Tk):
     def assign_menu(self, menu_bar):
         self['menu'] = menu_bar
 
-# ----------------- MENU BAR CREATION ----------------------
+# ----------------- MENUBAR CREATION ----------------------
 
 class MenuBar(tk.Menu):
     """ Menu Bar of the app window. """
@@ -76,6 +77,7 @@ class MenuBar(tk.Menu):
 
 class MenuFile(tk.Menu):
     """ File menu in app menubar. """
+
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
@@ -97,7 +99,11 @@ class FrameMain(ttk.Frame):
         self.grid(column=0, row=0, sticky='nwse')
 
 class FrameEdit(ttk.Frame):
-    """ Manages frame containing project for edition. """
+    """ Manages frame containing project for edition. 
+    
+    Frame contents:
+        - Tab control (ttk.notebook) for every sheet in project.
+    """
     
     def __init__(self, parent):
         super().__init__()
@@ -106,10 +112,16 @@ class FrameEdit(ttk.Frame):
         self.configure(padding=2, relief='groove', borderwidth=2)
         self.grid(column=0, row=0, sticky='nwse')
         self.columnconfigure(0, weight=1)
-        self.inputvars = []
+        self.rowconfigure(0,weight=1)
+        self.track_vars = []
+
+        self.tab_control = ttk.Notebook(self)
+        self.tab_control.columnconfigure(0, weight=1)
+        self.tab_control.rowconfigure(0,weight=1)
+        self.tab_control.grid(column=0, row=0, sticky="nwse")
 
 class FrameButtons(ttk.Frame):
-    """ Manages frame with action buttons """
+    """ Manages frame with action buttons. """
 
     def __init__(self, parent):
         super().__init__()
@@ -148,21 +160,22 @@ class FrameButtons(ttk.Frame):
 # ----------------- DISPLAYING PROJECT CONTENTS ----------------------
 
 class DisplaySheet():
-    """ Contains sheet contents """
+    """ Graphical representation of DMC.Sheet object. """
+
     def __init__(self, parent, sheet, sheet_idx, uid):
+
+        self.tab_control = parent.tab_control
 
         # Frame that contatins single sheet definition
         self.frame = ttk.Frame(parent)
         self.frame.configure(
             style='EditSheet.TFrame', 
-            padding=0, 
-            relief='groove',
-            borderwidth=3)
+            padding=5)
         
         # Sheet parameter - name 
         self.name = StringVar(
             value=sheet.name, 
-            name=gen_varname(uid, 'name')
+            name=gen_track_name(uid, 'name')
             )
         self.name.trace('w',edit_trace)
         self.name_box = ttk.Entry(
@@ -177,7 +190,7 @@ class DisplaySheet():
         # Sheet parameter - size
         self.size = StringVar(
             value=sheet.size, 
-            name=gen_varname(uid, 'size')
+            name=gen_track_name(uid, 'size')
             ) 
         self.size.trace('w',edit_trace)
         self.size_box = ttk.Combobox(
@@ -192,10 +205,10 @@ class DisplaySheet():
             text='Size', 
             background='pink')
 
-        # Sheet parameter - oriantation
+        # Sheet parameter - orientation
         self.orientation = StringVar(
             value=sheet.orientation, 
-            name=gen_varname(uid, 'orientation')
+            name=gen_track_name(uid, 'orientation')
             ) 
         self.orientation.trace('w',edit_trace)
         self.orientation_box = ttk.Combobox(
@@ -208,9 +221,9 @@ class DisplaySheet():
             self.frame, text='Orientation', background='yellow')
 
         # Assign variables for tracing
-        parent.inputvars.append(self.name)
-        parent.inputvars.append(self.size)
-        parent.inputvars.append(self.orientation)
+        parent.track_vars.append(self.name)
+        parent.track_vars.append(self.size)
+        parent.track_vars.append(self.orientation)
 
         # Generate #########################
         self.dmcs = []
@@ -244,12 +257,17 @@ class DisplaySheet():
         print(self.frame.winfo_exists())       
 
     def unhide(self, index):
-        self.frame.grid(column=0, row=index, sticky='nwe', pady=(10,10))
+        self.tab_control.add(self.frame, text=self.name.get())
+        # self.frame.grid(column=0, row=0, sticky='nwe', pady=(10,10))
+        # self.frame.grid(column=0, row=index, sticky='nwe', pady=(10,10))
 
     def destroy(self):
-        self.frame.destroy()
+        self.tab_control.forget(self.frame)
+        # self.frame.destroy()
 
 class DisplayDmc():
+    """ Graphical representation of DMC.DMC object. """
+
     def __init__(self, parent_vars, parent, dmc, dmc_idx, uid_id):
 
         # Frame thet contains single DMC config
@@ -260,7 +278,7 @@ class DisplayDmc():
         self.name = StringVar(
             master=self.frame,
             value=dmc.name, 
-            name=gen_varname(uid_id, dmc_idx, 'name')
+            name=gen_track_name(uid_id, dmc_idx, 'name')
             ) 
         self.name.trace('w',edit_trace)
         self.name_box = ttk.Entry(
@@ -278,7 +296,7 @@ class DisplayDmc():
         self.size = IntVar(
             master=self.frame,
             value=dmc.size, 
-            name=gen_varname(uid_id, dmc_idx, 'size'),
+            name=gen_track_name(uid_id, dmc_idx, 'size'),
             ) 
         self.size.trace('w',edit_trace)
         self.size_box = ttk.Entry(
@@ -296,7 +314,7 @@ class DisplayDmc():
         self.quiet_zone = IntVar(
             master=self.frame,
             value=dmc.quiet_zone, 
-            name=gen_varname(uid_id, dmc_idx, 'quiet_zone')) 
+            name=gen_track_name(uid_id, dmc_idx, 'quiet_zone')) 
         self.quiet_zone.trace('w',edit_trace)
         self.quiet_zone_box = ttk.Combobox(self.frame, textvariable=self.quiet_zone, state='readonly', style='EditCombobox.TCombobox')
         self.quiet_zone_box['values'] = c_dmc.QUIET_ZONE
@@ -306,9 +324,9 @@ class DisplayDmc():
             style='EditLabel.TLabel')
 
         # Assign variables for tracing
-        parent_vars.inputvars.append(self.name)
-        parent_vars.inputvars.append(self.size)
-        parent_vars.inputvars.append(self.quiet_zone)
+        parent_vars.track_vars.append(self.name)
+        parent_vars.track_vars.append(self.size)
+        parent_vars.track_vars.append(self.quiet_zone)
 
         self.dmc_parts = []
         for idx, dmc_part in enumerate(dmc.dmc_part):
@@ -336,6 +354,7 @@ class DisplayDmc():
         self.frame.destroy()
 
 class DisplayDmcPart():
+    """ Graphical representation of DMC.DmcPart object. """
     def __init__(self, parent_vars, parent, dmc_part, dmc_part_idx, uid, dmc_idx):
         # DMC Part display
         self.frame = ttk.Frame(parent)
@@ -345,12 +364,12 @@ class DisplayDmcPart():
         self.type = StringVar(
             master=self.frame,
             value=dmc_part.type, 
-            name=gen_varname(uid, dmc_idx, dmc_part_idx, 'type')) 
+            name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'type')) 
         self.type.trace('w',edit_trace)
         self.type_box = ttk.Combobox(self.frame, textvariable=self.type, state='readonly')
         self.type_box['values'] = c_dmc.DMC_PART_TYPE
 
-        parent_vars.inputvars.append(self.type)
+        parent_vars.track_vars.append(self.type)
 
 
         if isinstance(dmc_part, DmcPartConstant):
@@ -358,7 +377,7 @@ class DisplayDmcPart():
             self.phrase = StringVar(
                 master=self.frame,
                 value=dmc_part.phrase, 
-                name=gen_varname(uid, dmc_idx, dmc_part_idx, 'phrase')) 
+                name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'phrase')) 
             self.phrase.trace('w',edit_trace)
             self.phrase_box = ttk.Entry(self.frame, textvariable=self.phrase)
             self.phrase_label = ttk.Label(            
@@ -366,14 +385,14 @@ class DisplayDmcPart():
                 text='Phrase:', 
                 style='EditLabel.TLabel'
                 )
-            parent_vars.inputvars.append(self.phrase)
+            parent_vars.track_vars.append(self.phrase)
 
         if isinstance(dmc_part, DmcPartCounter):  
             # Start 
             self.start = IntVar(
                 master=self.frame,
                 value=dmc_part.start, 
-                name=gen_varname(uid, dmc_idx, dmc_part_idx, 'start')) 
+                name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'start')) 
             self.start.trace('w',edit_trace)
             self.start_box = ttk.Entry(self.frame, textvariable=self.start)
             self.start_label = ttk.Label(            
@@ -381,13 +400,13 @@ class DisplayDmcPart():
                 text='Start:', 
                 style='EditLabel.TLabel'
                 )
-            parent_vars.inputvars.append(self.start)
+            parent_vars.track_vars.append(self.start)
 
             # Step
             self.step = IntVar(
                 master=self.frame,
                 value=dmc_part.step, 
-                name=gen_varname(uid, dmc_idx, dmc_part_idx, 'step')) 
+                name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'step')) 
             self.step.trace('w',edit_trace)
             self.step_box = ttk.Entry(self.frame, textvariable=self.step)
             self.step_label = ttk.Label(            
@@ -395,13 +414,13 @@ class DisplayDmcPart():
                 text='Step:', 
                 style='EditLabel.TLabel'
                 )
-            parent_vars.inputvars.append(self.step)
+            parent_vars.track_vars.append(self.step)
 
             # Number of characters
             self.chars_num = IntVar(
                 master=self.frame,
                 value=dmc_part.chars_num, 
-                name=gen_varname(uid, dmc_idx, dmc_part_idx, 'chars_num')) 
+                name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'chars_num')) 
             self.chars_num.trace('w',edit_trace)
             self.chars_num_box = ttk.Entry(self.frame, textvariable=self.chars_num)
             self.chars_num_label = ttk.Label(            
@@ -409,7 +428,7 @@ class DisplayDmcPart():
                 text='Chars num:', 
                 style='EditLabel.TLabel'
                 )
-            parent_vars.inputvars.append(self.chars_num)
+            parent_vars.track_vars.append(self.chars_num)
 
     def show(self, index):
         # show single DMC config frame
@@ -475,7 +494,7 @@ def add_new_dmc():
 
 
 # Generates variable names for tracking of user changes. 
-def gen_varname(uid, *args):
+def gen_track_name(uid, *args):
     name = str(uid)
     for a in args:
         name += f'#{a}'
@@ -496,7 +515,7 @@ def edit_trace(name,test,mode):
     """ Tracing of edit area changes. """
 
     print(f"{name},{test},{mode}")
-    for idx,var in enumerate(cfg.root.frame_edit.inputvars):
+    for idx,var in enumerate(cfg.root.frame_edit.track_vars):
         #print(f'idx:{idx}')
         if name == str(var):
             # retrieve name of var and its location from string varname
@@ -581,14 +600,15 @@ def destroy_all():
 def display():
     cfg.root.sheet_frame = []
     for id0x, sheet in enumerate(cfg.root.project.sheets):
-        cfg.root.sheet_frame.append(DisplaySheet(cfg.root.frame_edit, sheet, id0x, sheet.uid))
+        cfg.root.sheet_frame.append(DisplaySheet(cfg.root.frame_edit, 
+                                    sheet, id0x, sheet.uid))
         cfg.root.sheet_frame[id0x].show(id0x)
 
 def open_project():
     filename = cfg.filedialog.askopenfilename()
 
 def close_window():
-    
+
     cfg.root.after(3000,cfg.root.destroy())
 
     # def close():
