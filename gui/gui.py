@@ -1,3 +1,4 @@
+# ----------------- IMPORTS ----------------------
 
 import tkinter as tk
 from tkinter import *  
@@ -14,8 +15,6 @@ from project.project import Project, Sheet
 import project.constants as c_project
 
 import project.cfg as cfg
-
-#from . import styles as s
 
 # ----------------- BUILDING MAIN WINDOW ----------------------
 
@@ -90,7 +89,12 @@ class MenuFile(tk.Menu):
 # ----------------- CREATING INTERNAL FRAMES ----------------------
 
 class FrameMain(ttk.Frame):
-    """ Manages main frame containing other frames. """
+    """ Manages main frame containing other frames. 
+    
+    Frame contents:
+        - FrameEdit,
+        - FrameButtons.
+    """
 
     def __init__(self, parent):
         super().__init__()
@@ -118,6 +122,7 @@ class FrameEdit(ttk.Frame):
         self.tab_control = ttk.Notebook(self)
         self.tab_control.columnconfigure(0, weight=1)
         self.tab_control.rowconfigure(0,weight=1)
+        self.tab_control.configure(style='EditTabControl.TNotebook')
         self.tab_control.grid(column=0, row=0, sticky="nwse")
 
 class FrameButtons(ttk.Frame):
@@ -131,30 +136,39 @@ class FrameButtons(ttk.Frame):
         self.columnconfigure(0, weight=0)
         self.configure(relief='groove', borderwidth=2, padding=2)
 
-        self.add_sheet = ttk.Button(self, text='Add new sheet', 
-                                width=30, command=add_new_sheet)
+        self.add_sheet = ttk.Button(
+            self, 
+            text='Add new sheet', 
+            width=30, command=add_new_sheet)
         self.add_sheet.grid(column=0, row=0)
 
-        self.remove_sheet = ttk.Button(self, text='Remove sheet', 
-                                width=30, 
-                                command=lambda : cfg.root.sheet_frame[0].hide)
+        self.remove_sheet = ttk.Button(
+            self, text='Remove sheet', 
+            width=30, 
+            command=remove_sheet)
         self.remove_sheet.grid(column=0, row=1)
 
-        self.remove_sheet = ttk.Button(self, text='Unide sheet', 
-                                width=30, 
-                                command=lambda : cfg.root.sheet_frame[0].unhide(0))
+        self.remove_sheet = ttk.Button(
+            self, text='Unide sheet', 
+            width=30, 
+            command=lambda : cfg.root.sheet_frame[0].unhide(0))
         self.remove_sheet.grid(column=0, row=2)
 
-        self.display_all = ttk.Button(self, text='Display all', 
-                                width=30, command=display)
+        self.display_all = ttk.Button(
+            self, text='Display all', 
+            width=30, 
+            command=display)
         self.display_all.grid(column=0, row=3)
 
-        self.display_all = ttk.Button(self, text='Destroy all', 
-                                width=30, command=destroy_all)
+        self.display_all = ttk.Button(
+            self, text='Destroy all', 
+            width=30, 
+            command=destroy_all)
         self.display_all.grid(column=0, row=4)
 
-        self.add_dmc = ttk.Button(self, text='Add DMC', 
-                                width=30, command=add_new_dmc)
+        self.add_dmc = ttk.Button(
+            self, text='Add DMC', 
+            width=30, command=add_new_dmc)
         self.add_dmc.grid(column=0, row=5)
 
 # ----------------- DISPLAYING PROJECT CONTENTS ----------------------
@@ -162,7 +176,7 @@ class FrameButtons(ttk.Frame):
 class DisplaySheet():
     """ Graphical representation of DMC.Sheet object. """
 
-    def __init__(self, parent, sheet, sheet_idx, uid):
+    def __init__(self, parent, sheet, sheet_idx, uuid):
 
         self.tab_control = parent.tab_control
 
@@ -175,7 +189,7 @@ class DisplaySheet():
         # Sheet parameter - name 
         self.name = StringVar(
             value=sheet.name, 
-            name=gen_track_name(uid, 'name')
+            name=gen_track_name(uuid, 'name')
             )
         self.name.trace('w',edit_trace)
         self.name_box = ttk.Entry(
@@ -190,7 +204,7 @@ class DisplaySheet():
         # Sheet parameter - size
         self.size = StringVar(
             value=sheet.size, 
-            name=gen_track_name(uid, 'size')
+            name=gen_track_name(uuid, 'size')
             ) 
         self.size.trace('w',edit_trace)
         self.size_box = ttk.Combobox(
@@ -202,13 +216,12 @@ class DisplaySheet():
         self.size_box['values'] = c_project.SHEET_SIZES
         self.size_label = ttk.Label(
             self.frame, 
-            text='Size', 
-            background='pink')
+            text='Size', )
 
         # Sheet parameter - orientation
         self.orientation = StringVar(
             value=sheet.orientation, 
-            name=gen_track_name(uid, 'orientation')
+            name=gen_track_name(uuid, 'orientation')
             ) 
         self.orientation.trace('w',edit_trace)
         self.orientation_box = ttk.Combobox(
@@ -218,7 +231,7 @@ class DisplaySheet():
             )
         self.orientation_box['values'] = c_project.SHEET_ORIENTATION
         self.orientation_label = ttk.Label(
-            self.frame, text='Orientation', background='yellow')
+            self.frame, text='Orientation')
 
         # Assign variables for tracing
         parent.track_vars.append(self.name)
@@ -228,7 +241,7 @@ class DisplaySheet():
         # Generate #########################
         self.dmcs = []
         for idx, dmc in enumerate(sheet.dmc_config):
-            self.dmcs.append(DisplayDmc(parent, self.frame, dmc, idx, uid))
+            self.dmcs.append(DisplayDmc(parent, self.frame, dmc, idx, uuid))
             self.dmcs[idx].show(idx)
         #self.dmcs = []
 
@@ -268,7 +281,7 @@ class DisplaySheet():
 class DisplayDmc():
     """ Graphical representation of DMC.DMC object. """
 
-    def __init__(self, parent_vars, parent, dmc, dmc_idx, uid_id):
+    def __init__(self, parent_vars, parent, dmc, dmc_idx, uuid_id):
 
         # Frame thet contains single DMC config
         self.frame = ttk.Frame(parent)
@@ -278,7 +291,7 @@ class DisplayDmc():
         self.name = StringVar(
             master=self.frame,
             value=dmc.name, 
-            name=gen_track_name(uid_id, dmc_idx, 'name')
+            name=gen_track_name(uuid_id, dmc_idx, 'name')
             ) 
         self.name.trace('w',edit_trace)
         self.name_box = ttk.Entry(
@@ -296,7 +309,7 @@ class DisplayDmc():
         self.size = IntVar(
             master=self.frame,
             value=dmc.size, 
-            name=gen_track_name(uid_id, dmc_idx, 'size'),
+            name=gen_track_name(uuid_id, dmc_idx, 'size'),
             ) 
         self.size.trace('w',edit_trace)
         self.size_box = ttk.Entry(
@@ -314,9 +327,14 @@ class DisplayDmc():
         self.quiet_zone = IntVar(
             master=self.frame,
             value=dmc.quiet_zone, 
-            name=gen_track_name(uid_id, dmc_idx, 'quiet_zone')) 
+            name=gen_track_name(uuid_id, dmc_idx, 'quiet_zone')) 
         self.quiet_zone.trace('w',edit_trace)
-        self.quiet_zone_box = ttk.Combobox(self.frame, textvariable=self.quiet_zone, state='readonly', style='EditCombobox.TCombobox')
+        self.quiet_zone_box = ttk.Combobox(
+            self.frame, 
+            textvariable=self.
+            quiet_zone, 
+            state='readonly', 
+            style='EditCombobox.TCombobox')
         self.quiet_zone_box['values'] = c_dmc.QUIET_ZONE
         self.quiet_zone_label = ttk.Label(
             self.frame, 
@@ -331,12 +349,23 @@ class DisplayDmc():
         self.dmc_parts = []
         for idx, dmc_part in enumerate(dmc.dmc_part):
             # print(dmc_part.type)
-            self.dmc_parts.append(DisplayDmcPart(parent_vars, self.frame, dmc_part, idx, uid_id, dmc_idx))
+            self.dmc_parts.append(DisplayDmcPart(
+                parent_vars, 
+                self.frame, 
+                dmc_part, 
+                idx, 
+                uuid_id, 
+                dmc_idx))
             self.dmc_parts[idx].show(idx)
 
     def show(self, index):
         # show single DMC config frame
-        self.frame.grid(column=3, row=index, padx=(30,0), pady=(10,10), sticky='nwse')
+        self.frame.grid(
+            column=3,
+            row=index,
+            padx=(30,0),
+            pady=(10,10), 
+            sticky='nwse')
         #self.frame.grid(column=0, row=index+1, columnspan=5, padx=(30,0), sticky='nwse')
 
         # define and configure columns
@@ -355,7 +384,7 @@ class DisplayDmc():
 
 class DisplayDmcPart():
     """ Graphical representation of DMC.DmcPart object. """
-    def __init__(self, parent_vars, parent, dmc_part, dmc_part_idx, uid, dmc_idx):
+    def __init__(self, parent_vars, parent, dmc_part, dmc_part_idx, uuid, dmc_idx):
         # DMC Part display
         self.frame = ttk.Frame(parent)
         self.frame.configure(style='EditDmcPart.TFrame')
@@ -364,7 +393,7 @@ class DisplayDmcPart():
         self.type = StringVar(
             master=self.frame,
             value=dmc_part.type, 
-            name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'type')) 
+            name=gen_track_name(uuid, dmc_idx, dmc_part_idx, 'type')) 
         self.type.trace('w',edit_trace)
         self.type_box = ttk.Combobox(self.frame, textvariable=self.type, state='readonly')
         self.type_box['values'] = c_dmc.DMC_PART_TYPE
@@ -377,7 +406,7 @@ class DisplayDmcPart():
             self.phrase = StringVar(
                 master=self.frame,
                 value=dmc_part.phrase, 
-                name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'phrase')) 
+                name=gen_track_name(uuid, dmc_idx, dmc_part_idx, 'phrase')) 
             self.phrase.trace('w',edit_trace)
             self.phrase_box = ttk.Entry(self.frame, textvariable=self.phrase)
             self.phrase_label = ttk.Label(            
@@ -392,7 +421,7 @@ class DisplayDmcPart():
             self.start = IntVar(
                 master=self.frame,
                 value=dmc_part.start, 
-                name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'start')) 
+                name=gen_track_name(uuid, dmc_idx, dmc_part_idx, 'start')) 
             self.start.trace('w',edit_trace)
             self.start_box = ttk.Entry(self.frame, textvariable=self.start)
             self.start_label = ttk.Label(            
@@ -406,7 +435,7 @@ class DisplayDmcPart():
             self.step = IntVar(
                 master=self.frame,
                 value=dmc_part.step, 
-                name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'step')) 
+                name=gen_track_name(uuid, dmc_idx, dmc_part_idx, 'step')) 
             self.step.trace('w',edit_trace)
             self.step_box = ttk.Entry(self.frame, textvariable=self.step)
             self.step_label = ttk.Label(            
@@ -420,7 +449,7 @@ class DisplayDmcPart():
             self.chars_num = IntVar(
                 master=self.frame,
                 value=dmc_part.chars_num, 
-                name=gen_track_name(uid, dmc_idx, dmc_part_idx, 'chars_num')) 
+                name=gen_track_name(uuid, dmc_idx, dmc_part_idx, 'chars_num')) 
             self.chars_num.trace('w',edit_trace)
             self.chars_num_box = ttk.Entry(self.frame, textvariable=self.chars_num)
             self.chars_num_label = ttk.Label(            
@@ -469,36 +498,39 @@ class DisplayDmcPart():
 
 def add_new_sheet():
 
-    new_sheet_id = len(cfg.root.project.sheets) 
+    new_sheet = Sheet(f'test sheet','A4')
 
-    cfg.root.project.AddSheet(Sheet(new_sheet_id, f'test sheet {new_sheet_id}','A4'))
-    cfg.root.project.sheets[new_sheet_id].add_dmc('variant_no')
-    cfg.root.project.sheets[new_sheet_id].dmc_config[0].set_count(10)
-    cfg.root.project.sheets[new_sheet_id].dmc_config[0].set_size(10)
-    cfg.root.project.sheets[new_sheet_id].dmc_config[0].add_dmc_part(DmcPartConstant('4500000010'))
-    cfg.root.project.sheets[new_sheet_id].dmc_config[0].add_dmc_part(DmcPartCounter(1, 1, 3))
-    cfg.root.project.sheets[new_sheet_id].add_dmc('body')
-    cfg.root.project.sheets[new_sheet_id].dmc_config[1].set_count(10)
-    cfg.root.project.sheets[new_sheet_id].dmc_config[1].set_size(15)
-    cfg.root.project.sheets[new_sheet_id].dmc_config[1].add_dmc_part(DmcPartConstant('5555100030'))
-    cfg.root.project.sheets[new_sheet_id].dmc_config[1].add_dmc_part(DmcPartCounter(1, 1, 3))
+    cfg.root.project.add_sheet(new_sheet)
+    # cfg.root.project.sheets[new_sheet_id].add_dmc('variant_no')
+    # cfg.root.project.sheets[new_sheet_id].dmc_config[0].set_count(10)
+    # cfg.root.project.sheets[new_sheet_id].dmc_config[0].set_size(10)
+    # cfg.root.project.sheets[new_sheet_id].dmc_config[0].add_dmc_part(DmcPartConstant('4500000010'))
+    # cfg.root.project.sheets[new_sheet_id].dmc_config[0].add_dmc_part(DmcPartCounter(1, 1, 3))
+    # cfg.root.project.sheets[new_sheet_id].add_dmc('body')
+    # cfg.root.project.sheets[new_sheet_id].dmc_config[1].set_count(10)
+    # cfg.root.project.sheets[new_sheet_id].dmc_config[1].set_size(15)
+    # cfg.root.project.sheets[new_sheet_id].dmc_config[1].add_dmc_part(DmcPartConstant('5555100030'))
+    # cfg.root.project.sheets[new_sheet_id].dmc_config[1].add_dmc_part(DmcPartCounter(1, 1, 3))
 
     print('added')
 
     pass
 
-def add_new_dmc():
+def remove_sheet():
+    cfg.root.project.remove_sheet()
+
+
+def add_new_dmc(project: Project, sheet_uuid):
     cfg.root.project.sheets[0].add_dmc('test_dmc')
     print('added dmc')
     pass    
 
+def gen_track_name(*args) -> str:
+    """ Generates variable names for tracking of user changes. """
 
-# Generates variable names for tracking of user changes. 
-def gen_track_name(uid, *args):
-    name = str(uid)
-    for a in args:
-        name += f'#{a}'
+    name = '$'.join(map(str,args))
     return name
+
 
 def validate_entry_int(value, name):
         print(f'validate {value} {name}')# {name}')
@@ -512,7 +544,7 @@ def validate_entry_int(value, name):
             return False
 
 def edit_trace(name,test,mode):
-    """ Tracing of edit area changes. """
+    """ Tracking changes made by user in EditFrame """
 
     print(f"{name},{test},{mode}")
     for idx,var in enumerate(cfg.root.frame_edit.track_vars):
@@ -521,8 +553,8 @@ def edit_trace(name,test,mode):
             # retrieve name of var and its location from string varname
             vars = name.split('#')
 
-            # sheet uid - always first argument
-            sheet_uid = int(vars[0])
+            # sheet uuid - always first argument
+            sheet_uuid = int(vars[0])
 
             # if dmc config related:
             dmc_idx = None
@@ -541,18 +573,18 @@ def edit_trace(name,test,mode):
             new_value = var.get()
 
             # print
-            print(f'sheet_uid: {sheet_uid}, dmc_idx: {dmc_idx}, dmc_part_idx: {dmc_part_idx}, var_name: {var_name}, new_value: {new_value}')
+            print(f'sheet_uuid: {sheet_uuid}, dmc_idx: {dmc_idx}, dmc_part_idx: {dmc_part_idx}, var_name: {var_name}, new_value: {new_value}')
 
             # Update project
-            update_project(cfg.root.project, sheet_uid, var_name, new_value,
+            update_project(cfg.root.project, sheet_uuid, var_name, new_value,
                            dmc_idx, dmc_part_idx)
 
-def update_project(project, sheet_uid, var_name, new_value,  
+def update_project(project, sheet_uuid, var_name, new_value,  
                    dmc_idx=None, dmc_part_idx=None):
 
     for sheet in project.sheets:
-        print (f'{sheet_uid}: {sheet.uid}')
-        if sheet.uid == sheet_uid:
+        print (f'{sheet_uuid}: {sheet.uuid}')
+        if sheet.uuid == sheet_uuid:
             print(f'inside, {dmc_idx}, {dmc_part_idx}')
             if dmc_part_idx is not None:
                 match str(var_name):
@@ -593,7 +625,6 @@ def update_project(project, sheet_uid, var_name, new_value,
             break
 
 def destroy_all():
-
     for sheet in cfg.root.sheet_frame:
         sheet.destroy()
            
@@ -601,7 +632,7 @@ def display():
     cfg.root.sheet_frame = []
     for id0x, sheet in enumerate(cfg.root.project.sheets):
         cfg.root.sheet_frame.append(DisplaySheet(cfg.root.frame_edit, 
-                                    sheet, id0x, sheet.uid))
+                                    sheet, id0x, sheet.id))
         cfg.root.sheet_frame[id0x].show(id0x)
 
 def open_project():
